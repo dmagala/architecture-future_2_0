@@ -1,0 +1,50 @@
+@startuml
+title Task4 – Deployment Automation Diagram (Terraform + Yandex Cloud)
+skinparam shadowing false
+skinparam dpi 150
+skinparam monochrome false
+skinparam defaultFontName Arial
+
+rectangle "Terraform" as TF #DDFFDD
+
+cloud "Yandex Cloud" {
+  rectangle "VPC Network" as VPC #EEE
+  rectangle "Public Subnet\n10.10.1.0/24" as PUB
+  rectangle "Private Subnet\n10.10.2.0/24" as PRIV
+  rectangle "Route Table\n0.0.0.0/0 -> NAT Instance" as RT
+  node "NAT Instance\nUbuntu + iptables MASQUERADE" as NAT
+  node "Compute Instance (App VM)\nUbuntu 22.04" as VM
+  database "Data Disk\n(network-ssd)" as DISK
+  rectangle "Default Security Group" as SG
+
+  VPC -down- PUB
+  VPC -down- PRIV
+  PRIV -[hidden]-> RT
+  RT --> NAT
+  VM -[hidden]- PRIV
+  VM -- DISK
+  VM .. SG
+}
+
+TF --> VPC : yandex_vpc_network
+TF --> PUB : yandex_vpc_subnet.public
+TF --> PRIV : yandex_vpc_subnet.private
+TF --> NAT : yandex_compute_instance.nat
+TF --> RT  : yandex_vpc_route_table.private_rt
+TF --> VM  : yandex_compute_instance.app
+TF --> DISK: yandex_compute_disk.data
+
+note bottom of VM
+  - Только приватный IP (без NAT на интерфейсе)
+  - Исходящий доступ в интернет через NAT
+  - SSH-ключи передаются через metadata
+end note
+
+note bottom of NAT
+  ВМ в публичной подсети с публичным IP.
+  Настроен IP-forwarding и
+  iptables MASQUERADE для исходящего доступа
+  из приватной подсети.
+end note
+
+@enduml
