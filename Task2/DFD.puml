@@ -1,0 +1,51 @@
+@startuml
+title DFD — Потоки данных и домены — Будущее 2.0
+
+rectangle "Клиники" as Clinics
+rectangle "Финтех-компания" as Fintech
+rectangle "ИИ-сервисы" as AIExt
+rectangle "Партнёры: Фармацевтика/Электроника" as Partners
+rectangle "Легаси DWH (SQL Server 2008)" as LegacyDWH
+
+node "Интеграция (События/Kafka, CDC, Канонические API)" as Integration
+node "IAM/Каталог/Линейка (Governance)" as Governance
+
+node "Медицинский домен — операционные сервисы" as HCProc
+node "Финтех‑домен — операционные сервисы" as FTProc
+node "Корпоративный домен — HR/ERP/Инвентарь" as INTProc
+
+cloud "Платформа данных\n(Data Lake/Lakehouse/Семантика/Портал BI)" as DataPlatform
+
+HCProc --> Integration : CDC/События/API
+FTProc --> Integration : CDC/События/API
+INTProc --> Integration : CDC/События/API
+
+LegacyDWH --> Integration : CDC/ETL из легаси
+
+Integration --> DataPlatform : потоки данных
+
+DataPlatform --> FTProc : агрегаты/скоринг по контракту
+
+Clinics --> HCProc : операционные взаимодействия
+Fintech --> FTProc : операционные взаимодействия
+AIExt --> Integration : обезличенные датасеты
+Integration --> AIExt : результаты/метрики
+
+Partners --> Integration : данные устройств/фарм
+Integration --> Partners : агрегаты/результаты
+
+rectangle "Бизнес‑пользователь (BI)" as BIUser
+BIUser --> DataPlatform : витрины/отчёты
+
+Governance --> DataPlatform : IAM/политики (ABAC)
+note right of Governance
+  Политики ABAC/RBAC, шифрование.
+  Маскирование PHI/PII/PCI.
+end note
+
+note bottom of DataPlatform
+  Медкарты/истории и результаты исследований
+  в BI не попадают. Только агрегаты/обезличенные данные.
+end note
+
+@enduml

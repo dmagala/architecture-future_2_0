@@ -1,0 +1,69 @@
+@startuml
+title C4 — Container Diagram — Будущее 2.0
+
+rectangle "Бизнес‑пользователь (BI)" as PersonBI
+rectangle "Data Engineer" as PersonDE
+rectangle "Data Scientist" as PersonDS
+
+node "Портал самообслуживания" as Portal
+node "IAM (SSO/MFA)" as IAM
+node "Каталог + Линейка" as Catalog
+node "Семантический слой" as SemLayer
+node "BI (Power BI)" as BI
+
+cloud "Облачная data-платформа" as DataPlatform {
+  node "Шина событий (Kafka)" as Stream
+  node "CDC коннекторы" as CDC
+  database "Data Lake (объектное хранилище)" as DL
+  database "Lakehouse / DWH (SQL)" as DW
+}
+
+node "Легаси" as Legacy {
+  database "DWH SQL Server 2008" as SQL2008
+  node "Интеграционная шина (Apache Camel)" as Camel
+}
+
+frame "Домены (операционные системы)" as Domains {
+  frame "Медицинский домен" as HCD {
+    node "Медицинские сервисы и БД\n(PHI/PII)" as HC_OPS
+  }
+  frame "Финтех‑домен" as FTD {
+    node "Финтех‑сервисы и БД\n(PCI/финансовые)" as FT_OPS
+  }
+  frame "Внутренние сервисы" as IOD {
+    node "HR/ERP/Инвентарь и БД" as INT_OPS
+  }
+}
+
+PersonBI --> Portal
+PersonDE --> Portal
+PersonDS --> Portal
+
+Portal --> IAM
+Portal --> Catalog
+Portal --> BI
+BI --> SemLayer
+Catalog --> SemLayer
+
+HC_OPS --> Stream
+FT_OPS --> Stream
+INT_OPS --> Stream
+HC_OPS --> CDC
+FT_OPS --> CDC
+INT_OPS --> CDC
+CDC --> DL
+Stream --> DL
+DL --> DW
+DW --> SemLayer
+SemLayer --> BI
+
+SQL2008 --> DL : CDC/ETL
+Camel --> SQL2008
+
+note right of BI
+  Медкарты/истории и результаты исследований
+  в BI не попадают. Доступ только к агрегированным
+  и обезличенным витринам.
+end note
+
+@enduml
